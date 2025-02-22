@@ -17,6 +17,9 @@ class TelnetServer:
             client_socket.sendall(b"\xff\xfb\x01" + b"\xff\xfb\x03" + b"\xff\xfd\x03")
             client_socket.sendall(b"\xff\xfb\x22" + b"\xff\xfd\x22")
 
+            client_socket.sendall(b"Press Enter To Start The Game\r\n")
+            self.read_initial_data(client_socket)
+
             client_socket.sendall(b"Welcome to the MUD game!\r\n")
             client_socket.sendall(b"Type 'login' to log in or 'register' to create a new account:\r\n")
 
@@ -49,6 +52,12 @@ class TelnetServer:
             print(f"An error occurred: {e}")
         finally:
             client_socket.close()
+
+    def read_initial_data(self, client_socket):
+        while True:
+            data = client_socket.recv(1024)
+            if not data.startswith(b'\xff'):
+                break
 
     def login(self, client_socket):
         client_socket.sendall(b"Username:\r\n")
