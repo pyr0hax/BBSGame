@@ -32,6 +32,12 @@ class Database:
             username TEXT NOT NULL,
             name TEXT NOT NULL,
             class TEXT NOT NULL,
+            strength INTEGER NOT NULL,
+            dexterity INTEGER NOT NULL,
+            constitution INTEGER NOT NULL,
+            intelligence INTEGER NOT NULL,
+            wisdom INTEGER NOT NULL,
+            charisma INTEGER NOT NULL,
             FOREIGN KEY (username) REFERENCES users (username)
         );
         """
@@ -76,8 +82,8 @@ class Database:
         cursor.execute("SELECT * FROM characters WHERE username = ?", (username,))
         characters = cursor.fetchall()
         connection.close()
-        return [{'id': char[0], 'username': char[1], 'name': char[2], 'class': char[3]} for char in characters]
+        return [{'id': char[0], 'username': char[1], 'name': char[2], 'class': char[3], 'strength': char[4], 'dexterity': char[5], 'constitution': char[6], 'intelligence': char[7], 'wisdom': char[8], 'charisma': char[9]} for char in characters]
 
-    def add_character(self, username, name, char_class):
-        query = "INSERT INTO characters (username, name, class) VALUES (?, ?, ?)"
-        self.execute_query(query, (username, name, char_class))
+    def add_character(self, username, name, char_class, stats):
+        query = "INSERT INTO characters (username, name, class, strength, dexterity, constitution, intelligence, wisdom, charisma) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        self.execute_query(query, (username, name, char_class, stats['Strength'], stats['Dexterity'], stats['Constitution'], stats['Intelligence'], stats['Wisdom'], stats['Charisma']))

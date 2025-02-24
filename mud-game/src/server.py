@@ -1,5 +1,6 @@
 import socket
 import threading
+import random
 from database import Database
 
 class TelnetServer:
@@ -17,9 +18,7 @@ class TelnetServer:
             client_socket.sendall(b"\xff\xfb\x01" + b"\xff\xfb\x03" + b"\xff\xfd\x03")
             client_socket.sendall(b"\xff\xfb\x22" + b"\xff\xfd\x22")
 
-            client_socket.sendall(b"Press Enter To Start The Game\r\n")
-            self.read_initial_data(client_socket)
-
+            client_socket.sendall(b"\r\n\r\n")
             client_socket.sendall(b"Welcome to the MUD game!\r\n")
             client_socket.sendall(b"Type 'login' to log in or 'register' to create a new account:\r\n")
 
@@ -123,12 +122,47 @@ class TelnetServer:
         client_socket.sendall(b"Choose a class (Warrior, Mage, Holy Man):\r\n")
         character_class = self.read_line(client_socket)
         if character_class in ["Warrior", "Mage", "Holy Man"]:
-            self.db.add_character(username, character_name, character_class)
+            client_socket.sendall(b"Do you want to select the character stats manually or let the game roll the stats? (type 'manual' or 'roll'):\r\n")
+            choice = self.read_line(client_socket).lower()
+            if choice == 'manual':
+                stats = self.manual_stats(client_socket)
+            elif choice == 'roll':
+                stats = self.roll_stats()
+            else:
+                client_socket.sendall(b"Invalid choice. Please try again.\r\n")
+                self.create_character(client_socket, username)
+                return
+
+            self.db.add_character(username, character_name, character_class, stats)
             client_socket.sendall(b"Character created successfully!\r\n")
-            self.current_character = {'username': username, 'name': character_name, 'class': character_class}
+            self.current_character = {'username': username, 'name': character_name, 'class': character_class, 'stats': stats}
         else:
             client_socket.sendall(b"Invalid class. Please try again.\r\n")
             self.create_character(client_socket, username)
+
+    def manual_stats(self, client_socket):
+        stats = {}
+        for stat in ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"]:
+            client_socket.sendall(f"Enter {stat} (1-20):\r\n".encode())
+            while True:
+                value = self.read_line(client_socket)
+                try:
+                    value = int(value)
+                    if 1 <= value <= 20:
+                        stats[stat] = value
+                        break
+                    else:
+                        client_socket.sendall(f"Invalid value for {stat}. Please enter a number between 1 and 20:\r\n".encode())
+                except ValueError:
+                    client_socket.sendall(f"Invalid value for {stat}. Please enter a number between 1 and 20:\r\n".encode())
+        return stats
+
+    def roll_stats(self):
+        stats = {}
+        for stat in ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"]:
+            rolls = sorted([random.randint(1, 6) for _ in range(4)], reverse=True)
+            stats[stat] = sum(rolls[:3])
+        return stats
 
     def show_help(self, client_socket):
         help_message = (
@@ -146,6 +180,12 @@ class TelnetServer:
                 f"Character Stats:\r\n"
                 f"Name: {character['name']}\r\n"
                 f"Class: {character['class']}\r\n"
+                f"Strength: {character['stats']['Strength']}\r\n"
+                f"Dexterity: {character['stats']['Dexterity']}\r\n"
+                f"Constitution: {character['stats']['Constitution']}\r\n"
+                f"Intelligence: {character['stats']['Intelligence']}\r\n"
+                f"Wisdom: {character['stats']['Wisdom']}\r\n"
+                f"Charisma: {character['stats']['Charisma']}\r\n"
             )
             client_socket.sendall(stats_message.encode())
         else:
