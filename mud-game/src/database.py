@@ -32,6 +32,9 @@ class Database:
             username TEXT NOT NULL,
             name TEXT NOT NULL,
             class TEXT NOT NULL,
+            level INTEGER NOT NULL,
+            xp INTEGER NOT NULL,
+            skill_points INTEGER NOT NULL,
             strength INTEGER NOT NULL,
             dexterity INTEGER NOT NULL,
             constitution INTEGER NOT NULL,
@@ -82,8 +85,16 @@ class Database:
         cursor.execute("SELECT * FROM characters WHERE username = ?", (username,))
         characters = cursor.fetchall()
         connection.close()
-        return [{'id': char[0], 'username': char[1], 'name': char[2], 'class': char[3], 'strength': char[4], 'dexterity': char[5], 'constitution': char[6], 'intelligence': char[7], 'wisdom': char[8], 'charisma': char[9]} for char in characters]
+        return [{'id': char[0], 'username': char[1], 'name': char[2], 'class': char[3], 'level': char[4], 'xp': char[5], 'skill_points': char[6], 'strength': char[7], 'dexterity': char[8], 'constitution': char[9], 'intelligence': char[10], 'wisdom': char[11], 'charisma': char[12]} for char in characters]
 
     def add_character(self, username, name, char_class, stats):
-        query = "INSERT INTO characters (username, name, class, strength, dexterity, constitution, intelligence, wisdom, charisma) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        self.execute_query(query, (username, name, char_class, stats['Strength'], stats['Dexterity'], stats['Constitution'], stats['Intelligence'], stats['Wisdom'], stats['Charisma']))
+        query = "INSERT INTO characters (username, name, class, level, xp, skill_points, strength, dexterity, constitution, intelligence, wisdom, charisma) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        self.execute_query(query, (username, name, char_class, 1, 0, 0, stats['Strength'], stats['Dexterity'], stats['Constitution'], stats['Intelligence'], stats['Wisdom'], stats['Charisma']))
+
+    def update_character(self, character):
+        query = """
+            UPDATE characters
+            SET level = ?, xp = ?, skill_points = ?, strength = ?, dexterity = ?, constitution = ?, intelligence = ?, wisdom = ?, charisma = ?
+            WHERE id = ?
+        """
+        self.execute_query(query, (character['level'], character['xp'], character['skill_points'], character['strength'], character['dexterity'], character['constitution'], character['intelligence'], character['wisdom'], character['charisma'], character['id']))

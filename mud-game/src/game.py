@@ -1,6 +1,8 @@
 import random
 
 class Game:
+    MAX_LEVEL = 80
+
     def __init__(self, db, client_socket, username):
         self.db = db
         self.client_socket = client_socket
@@ -50,9 +52,18 @@ class Game:
                 self.create_character()
                 return
 
-            self.db.add_character(self.username, character_name, character_class, stats)
+            character = {
+                'username': self.username,
+                'name': character_name,
+                'class': character_class,
+                'stats': stats,
+                'level': 1,
+                'xp': 0,
+                'skill_points': 0
+            }
+            self.db.add_character(character['username'], character['name'], character['class'], character['stats'])
             self.client_socket.sendall(b"Character created successfully!\r\n")
-            self.current_character = {'username': self.username, 'name': character_name, 'class': character_class, 'stats': stats}
+            self.current_character = character
         else:
             self.client_socket.sendall(b"Invalid class. Please try again.\r\n")
             self.create_character()
@@ -81,6 +92,25 @@ class Game:
             stats[stat] = sum(rolls[:3])
         return stats
 
+    def gain_xp(self, amount):
+        if self.current_character:
+            self.current_character['xp'] += amount
+            self.client_socket.sendall(f"You gained {amount} XP!\r\n".encode())
+            self.check_level_up()
+        else:
+            self.client_socket.sendall(b"No character selected.\r\n")
+
+    def check_level_up(self):
+        while self.current_character['xp'] >= self.xp_to_next_level() and self.current_character['level'] < self.MAX_LEVEL:
+            self.current_character['xp'] -= self.xp_to_next_level()
+            self.current_character['level'] += 1
+            self.current_character['skill_points'] += 1
+            self.client_socket.sendall(f"Congratulations! You reached level {self.current_character['level']} and gained a skill point!\r\n".encode())
+            self.db.update_character(self.current_character)
+
+    def xp_to_next_level(self):
+        return 100 * self.current_character['level']
+
     def show_stats(self):
         if self.current_character:
             character = self.current_character
@@ -88,6 +118,9 @@ class Game:
                 f"Character Stats:\r\n"
                 f"Name: {character['name']}\r\n"
                 f"Class: {character['class']}\r\n"
+                f"Level: {character['level']}\r\n"
+                f"XP: {character['xp']}\r\n"
+                f"Skill Points: {character['skill_points']}\r\n"
                 f"Strength: {character['stats']['Strength']}\r\n"
                 f"Dexterity: {character['stats']['Dexterity']}\r\n"
                 f"Constitution: {character['stats']['Constitution']}\r\n"
